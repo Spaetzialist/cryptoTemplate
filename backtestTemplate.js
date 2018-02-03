@@ -1,4 +1,8 @@
 #mit Ausgabe von Gewinn/Verlust in % 
+# todo:
+# - Wie wirkt sich die fee aus?
+# - Funktioniert assetsAvailable==0?
+
 
 trading = require "trading"  
 params = require "params"  
