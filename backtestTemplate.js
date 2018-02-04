@@ -1,7 +1,5 @@
 #mit Ausgabe von Gewinn/Verlust in % 
 # todo:
-# - Wie wirkt sich die fee aus?
-# - Funktioniert assetsAvailable==0?
 # - Integration Parameter für Backtest ändern
 # - maximum buy amount in % vom Gesamtwert
 
@@ -39,25 +37,25 @@ handle: ->
         maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee/100))  
     else
         maximumBuyAmount = (currencyAvailable/instrument.price) * (1 - (_maximumExchangeFee/100))  
-    maximumSellAmount = (assetsAvailable * (1 - (_maximumExchangeFee/100)))  #verkaufe alles was da ist
+    maximumSellAmount = assetsAvailable  #verkaufe alles was da ist
     
     
     #---------------------------------------------------------------------------
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
-    debug "assetsAvailable: #{assetsAvailable}"
+    
     if (_rebuy > 0)
         if ((maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]>instrument.high[instrument.high.length-2]))  
-            trading.buy instrument, 'limit', maximumBuyAmount, instrument.price, _orderTimeout  
+            trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout
         if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]<instrument.high[instrument.high.length-2]))  
-            trading.sell instrument, 'limit', maximumSellAmount, instrument.price, _orderTimeout 
+            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
     else
         #kaufe nur wenn gerade nichts gekauft ist
         if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]>instrument.high[instrument.high.length-2]))  
-            trading.buy instrument, 'limit', maximumBuyAmount, instrument.price, _orderTimeout  
+            trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
         if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]<instrument.high[instrument.high.length-2]))  
-            trading.sell instrument, 'limit', maximumSellAmount, instrument.price, _orderTimeout 
-
+            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
+    #debug "assetsAvailable after: #{@portfolios[instrument.market].positions[instrument.asset()].amount}"
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
 
