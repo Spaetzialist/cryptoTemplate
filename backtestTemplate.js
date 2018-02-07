@@ -16,7 +16,7 @@ _rebuy = params.add "Buy more than once before selling?", 0         #muss man er
 #_orderTimeout = params.add "Order timeout", 30  
 _orderTimeout = 30   
 MINIMUM_AMOUNT = 0.04
-PERCENT = 0.05
+PERCENT = 0.5
 init: ->  
     #This runs once when the bot is started  
 handle: ->  
@@ -29,7 +29,7 @@ handle: ->
     storage.startBalance ?= currencyAvailable     #speicher Startkapital für Auswertung am Ende
     storage.startPrice ?= instrument.price        #speicher initial price für Auswertung am Ende
     storage.startKursCalc ?= instrument.price
-    
+    _maximumMoneyPerTrade = currencyAvailable * 0.1 
     if (_maximumMoneyPerTrade>0)
         maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee/100))  
     else
@@ -64,12 +64,15 @@ onStop: ->
     if (assetsAvailable > 0)
         trading.sell instrument    #verkaufe alles um einen Endpreis zu erhalten
     currentBalance = @portfolios[instrument.market].positions[instrument.base()].amount 
-    botProfit = ((currentBalance / storage.startBalance - 1)*100) 
-    buhProfit = ((instrument.price / storage.startPrice - 1)*100) 
-
+    botProfit = ((currentBalance / storage.startBalance)*100) 
+    buhProfit = ((instrument.price / storage.startPrice)*100) 
+    debug currentBalance
+    debug assetsAvailable
     info "Bot Profit = #{botProfit.toFixed(2)}%" 
-    info "Hodl Profit = #{buhProfit.toFixed(2)}%"  
+    info "Hodl Profit = #{buhProfit.toFixed(2)}%"
+    debug ""
 
             
             
             
+          
