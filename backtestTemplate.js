@@ -1,4 +1,7 @@
-#mit Ausgabe von Gewinn/Verlust in % 
+
+            
+              
+  #mit Ausgabe von Gewinn/Verlust in % 
 # todo:
 # - Integration Parameter für Backtest ändern
 # - maximum buy amount in % vom Gesamtwert
@@ -8,18 +11,14 @@ trading = require "trading"
 params = require "params"  
  
 
-#_maximumExchangeFee = params.add "Maximum exchange fee %", .25  
-#_maximumOrderAmount = params.add "Maximum order amount", 1         #wieviel Stück maximal
-#_maximumMoneyPerTrade = params.add "Maximum money per trade", 25   #wieviel Geld pro Trade maximal, 0: so viel wie es geht
-#_rebuy = params.add "Buy more than once before selling?", 0         #muss man erst verkaufen um wieder neu zu kaufen oder kann man auch mehrmals hintereinander kaufen?
+_maximumExchangeFee = params.add "Maximum exchange fee %", .25  
+_maximumOrderAmount = params.add "Maximum order amount", 1         #wieviel Stück maximal
+_maximumMoneyPerTrade = params.add "Maximum money per trade", 100   #wieviel Geld pro Trade maximal, 0: so viel wie es geht
+_rebuy = params.add "Buy more than once before selling?", 0         #muss man erst verkaufen um wieder neu zu kaufen oder kann man auch mehrmals hintereinander kaufen?
                                                                    #1: mehrmals, 0: nur 1x kaufen
 #_orderTimeout = params.add "Order timeout", 30  
-MINIMUM_AMOUNT = .001  
-_maximumExchangeFee = .25  
-_maximumMoneyPerTrade = 25   #wieviel Geld pro Trade maximal, 0: so viel wie es geht
-_rebuy = 0         #muss man erst verkaufen um wieder neu zu kaufen oder kann man auch mehrmals hintereinander kaufen?
-                                                                   #1: mehrmals, 0: nur 1x kaufen
-_orderTimeout = 30    
+_orderTimeout = 30   
+MINIMUM_AMOUNT = 0.04
 
 init: ->  
     #This runs once when the bot is started  
@@ -45,15 +44,15 @@ handle: ->
     #---------------------------------------------------------------------------
     
     if (_rebuy > 0)
-        if ((maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]>instrument.high[instrument.high.length-2]))  
+        if ((maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>instrument.close[instrument.close.length-2]))  
             trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout
-        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]<instrument.high[instrument.high.length-2]))  
+        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<instrument.close[instrument.close.length-2]))  
             trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
     else
         #kaufe nur wenn gerade nichts gekauft ist
-        if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]>instrument.high[instrument.high.length-2]))  
+        if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>instrument.close[instrument.close.length-2]))  
             trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
-        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.high[instrument.high.length-1]<instrument.high[instrument.high.length-2]))  
+        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<instrument.close[instrument.close.length-2]))  
             trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
     #debug "assetsAvailable after: #{@portfolios[instrument.market].positions[instrument.asset()].amount}"
 onRestart: ->  
@@ -72,4 +71,9 @@ onStop: ->
     buhProfit = ((instrument.price / storage.startPrice - 1)*100) 
 
     info "Bot Profit = #{botProfit.toFixed(2)}%" 
-    info "Hodl Profit = #{buhProfit.toFixed(2)}%" 
+    info "Hodl Profit = #{buhProfit.toFixed(2)}%"  
+
+            
+            
+            
+          
