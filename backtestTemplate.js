@@ -1,4 +1,5 @@
-# mit Ausgabe von Gewinn/Verlust in % 
+              
+  #mit Ausgabe von Gewinn/Verlust in % 
 # todo:
 # - Integration Parameter für Backtest ändern
 # - maximum buy amount in % vom Gesamtwert
@@ -16,7 +17,7 @@ _rebuy = params.add "Buy more than once before selling?", 0         #muss man er
 #_orderTimeout = params.add "Order timeout", 30  
 _orderTimeout = 30   
 MINIMUM_AMOUNT = 0.04
-PERCENT = 0.05
+
 init: ->  
     #This runs once when the bot is started  
 handle: ->  
@@ -28,8 +29,7 @@ handle: ->
     currencyAvailable = @portfolios[instrument.market].positions[instrument.curr()].amount  
     storage.startBalance ?= currencyAvailable     #speicher Startkapital für Auswertung am Ende
     storage.startPrice ?= instrument.price        #speicher initial price für Auswertung am Ende
-    storage.startKursCalc ?= instrument.price
-    _maximumMoneyPerTrade = currencyAvailable * 0.1 
+
     if (_maximumMoneyPerTrade>0)
         maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee/100))  
     else
@@ -40,18 +40,19 @@ handle: ->
     #---------------------------------------------------------------------------
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
-
-    if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc*(1+PERCENT)))  
-        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
-        storage.startKursCalc = instrument.price
-    if ((assetsAvailable>0)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc))
-        storage.startKursCalc = instrument.price    
-    if ((assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-PERCENT)))  
-        trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
-    if ((assetsAvailable == 0)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc))
-        storage.startKursCalc = instrument.price 
-        
-    #info  "storage.startKursCalc = #{storage.startKursCalc}"
+    
+    if (_rebuy > 0)
+        if ((maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>instrument.close[instrument.close.length-2]))  
+            trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout
+        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<instrument.close[instrument.close.length-2]))  
+            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
+    else
+        #kaufe nur wenn gerade nichts gekauft ist
+        if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>instrument.close[instrument.close.length-2]))  
+            trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
+        if ((maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<instrument.close[instrument.close.length-2]))  
+            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
+    #debug "assetsAvailable after: #{@portfolios[instrument.market].positions[instrument.asset()].amount}"
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
 
@@ -60,19 +61,12 @@ onStop: ->
     debug "Bot started at #{new Date(storage.botStartedAt)}"  
     debug "Bot stopped at #{new Date(data.at)}"  
 
-    assetsAvailable = @portfolios[instrument.market].positions[instrument.asset()].amount   
+    assetsAvailable = @portfolios[instrument.market].positions[instrument.asset()].amount
     if (assetsAvailable > 0)
         trading.sell instrument    #verkaufe alles um einen Endpreis zu erhalten
     currentBalance = @portfolios[instrument.market].positions[instrument.base()].amount 
     botProfit = ((currentBalance / storage.startBalance)*100) 
     buhProfit = ((instrument.price / storage.startPrice)*100) 
-    debug "currency = #{currentBalance.toFixed(2)}"
-    debug "assets = #{@portfolios[instrument.market].positions[instrument.asset()].amount}"
-    info "Bot Profit = #{botProfit.toFixed(2)}%" 
-    info "Hodl Profit = #{buhProfit.toFixed(2)}%"
-    debug ""
 
-            
-            
-            
-          
+    info "Bot Profit = #{botProfit.toFixed(2)}%" 
+ info "Hodl Profit = #{buhProfit.toFixed(2)}%" 
