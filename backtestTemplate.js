@@ -1,4 +1,4 @@
-# Trailing Stop
+# Trailing Stop Ripple
 # todo:
 
 
@@ -25,7 +25,6 @@ handle: ->
     currencyAvailable = @portfolios[instrument.market].positions[instrument.curr()].amount  
 
     storage.startKursCalc ?= instrument.price
-    storage.sellKurs ?= instrument.price
     _maximumMoneyPerTrade = currencyAvailable * _einsatz
     if (_maximumMoneyPerTrade>0)
         maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee*2/100))  
@@ -37,13 +36,18 @@ handle: ->
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
 
-    
+    #if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc*(1+context.PERCENT)))  
+    #    trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
+    #    storage.startKursCalc = instrument.price
+    if (assetsAvailable>0)
+        info "Ausstieg bei: #{storage.startKursCalc*(1-context.PERCENT)}"
     if ((assetsAvailable>0)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc))
         storage.startKursCalc = instrument.price    
     if ((assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-context.PERCENT)))  
         trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
+    if ((assetsAvailable == 0)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc))
+        storage.startKursCalc = instrument.price 
 
-    
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
 
