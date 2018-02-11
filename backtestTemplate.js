@@ -1,4 +1,4 @@
-# Trailing Stop
+# Trailing Stop Ripple
 # todo:
 
 
@@ -37,12 +37,16 @@ handle: ->
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
 
-    
+    if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>storage.sellKurs))  
+        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
+        storage.startKursCalc = instrument.price
     if ((assetsAvailable>0)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc))
         storage.startKursCalc = instrument.price    
     if ((assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-context.PERCENT)))  
         trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
-
+        storage.sellKurs = instrument.price
+    if ((assetsAvailable == 0)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc))
+        storage.startKursCalc = instrument.price 
     
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
