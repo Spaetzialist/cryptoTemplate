@@ -12,7 +12,8 @@ MINIMUM_AMOUNT = 0.04
 
 init: ->  
     #This runs once when the bot is started  
-	context.PERCENT = 0.05
+	context.candleHighPercentage = 50
+	context.candleLowPercentage = 100
 	setPlotOptions
         performance:
             color: 'blue'
@@ -28,7 +29,7 @@ handle: ->
     storage.startBalance ?= currencyAvailable     #speicher Startkapital für Auswertung am Ende
     storage.startPrice ?= instrument.price        #speicher initial price für Auswertung am Ende
     storage.startKursCalc ?= instrument.price
-    _maximumMoneyPerTrade = currencyAvailable * 0.1 
+    _maximumMoneyPerTrade = currencyAvailable * 1
     if (_maximumMoneyPerTrade>0)
         maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee/100))  
     else
@@ -41,17 +42,27 @@ handle: ->
     #---------------------------------------------------------------------------
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
-
-    if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc*(1+context.PERCENT)))  
-        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
-        storage.startKursCalc = instrument.price
-    if ((assetsAvailable>0)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc))
-        storage.startKursCalc = instrument.price    
-    if ((assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-context.PERCENT)))  
-        trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
-    if ((assetsAvailable == 0)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc))
-        storage.startKursCalc = instrument.price 
+    candleBody = instrument.close[instrument.close.length-1] - instrument.open[instrument.open.length-1]
+    debug "open|close: #{instrument.open[instrument.open.length-1]}|#{instrument.close[instrument.close.length-1]}"
+    if (candleBody<0)
+        candleBody = candleBody * (-1)
+        candleHigh = instrument.high[instrument.high.length-1] - instrument.open[instrument.open.length-1]
+        candleLow =   instrument.close[instrument.close.length-1] - instrument.low[instrument.low.length-1]
+    else
+        candleHigh = instrument.high[instrument.high.length-1] - instrument.close[instrument.open.length-1]
+        candleLow = instrument.open[instrument.open.length-1] - instrument.low[instrument.low.length-1] 
+    debug "candleBody: #{candleBody}"
+    debug "candleHigh: #{candleHigh}"
+    debug "candleLow: #{candleLow}"
     
+    candleLowPercentage = candleLow/candleBody*100
+    candleHighPercentage = candleHigh/candleBody*100
+        
+    if (assetsAvailable>0)
+        trading.sell instrument
+    if ((context.candleLowPercentage<candleLowPercentage)&&(assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT))
+        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
+
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
 
