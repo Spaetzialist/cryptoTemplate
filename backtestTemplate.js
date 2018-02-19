@@ -1,6 +1,10 @@
-# Trailing Stop Ripple
-# todo:
-
+# Stop/In
+# Das ist kein Bot für einen Dauerlauf, sondern nur für eine gewisse Zeit
+# Features
+# -Einstoppen bei erreichen eines bestimmten Kurs Werts
+# -Einstoppen bei einem bestimmten Wachstums in %
+# -Stop bei erreichen eines bestimmten Werts
+# -Stop bei einem prozentualen Sinken des Kurses
 
 trading = require "trading"  
 params = require "params"  
