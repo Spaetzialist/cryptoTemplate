@@ -1,23 +1,30 @@
-# mit Ausgabe von Gewinn/Verlust in % 
-# todo:
+# Kaufe bei ATR > 1.5% und SMA > 0
+# Verkaufe bei 1,5% erreicht oder Ausgangskurs erreicht
 
 
 trading = require "trading"  
-params = require "params"  
+talib = require "talib"
  
 
-_maximumExchangeFee = .25  
+_maximumExchangeFee = .26
 _orderTimeout = 30   
-MINIMUM_AMOUNT = 0.04
+MINIMUM_AMOUNT = 30
+#######Params
+
+#######
+class functions
+
+#### TA-lib Indicatots 
 
 init: ->  
     #This runs once when the bot is started  
-	context.PERCENT = 0.05
-	setPlotOptions
-        performance:
-            color: 'blue'
-            secondary: true
-            size: 5
+    context.timeInterval = 5
+    context.Prozent = 1.5
+    setPlotOptions
+        valueSMA:
+            color: 'deeppink'
+            lineWidth: 2
+    context.buyPrice = 0
 handle: ->  
     #This runs once every tick or bar on the graph  
     storage.botStartedAt ?= data.at  
@@ -25,33 +32,55 @@ handle: ->
 
     assetsAvailable = @portfolios[instrument.market].positions[instrument.asset()].amount  
     currencyAvailable = @portfolios[instrument.market].positions[instrument.curr()].amount  
-    storage.startBalance ?= currencyAvailable     #speicher Startkapital für Auswertung am Ende
-    storage.startPrice ?= instrument.price        #speicher initial price für Auswertung am Ende
+
     storage.startKursCalc ?= instrument.price
-    _maximumMoneyPerTrade = currencyAvailable * 0.1 
-    if (_maximumMoneyPerTrade>0)
-        maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee/100))  
-    else
-        maximumBuyAmount = (currencyAvailable/instrument.price) * (1 - (_maximumExchangeFee/100))  
+    _maximumMoneyPerTrade = currencyAvailable
+    maximumBuyAmount = (_maximumMoneyPerTrade/instrument.price) * (1 - (_maximumExchangeFee*2/100))  
+    
     maximumSellAmount = assetsAvailable  #verkaufe alles was da ist
     
         
-    plot
-        performance: 100*(currencyAvailable + assetsAvailable * instrument.price)/storage.startBalance
     #---------------------------------------------------------------------------
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
 
-    if ((assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc*(1+context.PERCENT)))  
-        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
-        storage.startKursCalc = instrument.price
-    if ((assetsAvailable>0)&&(instrument.close[instrument.close.length-1]>storage.startKursCalc))
-        storage.startKursCalc = instrument.price    
-    if ((assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-context.PERCENT)))  
-        trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
-    if ((assetsAvailable == 0)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc))
-        storage.startKursCalc = instrument.price 
+    valueSMA_ = talib.SMA
+        startIdx: instrument.close.length-context.timeInterval
+        endIdx: instrument.close.length-1
+        inReal: instrument.close
+        optInTimePeriod: context.timeInterval
+    valueSMA = valueSMA_[valueSMA_.length-1]
+    valueSMAPre = valueSMA_[valueSMA_.length-2]
+    #debug "valueSMA = #{valueSMA}"
+    #debug "valueSMAPre = #{valueSMAPre}"
     
+    valueATR = talib.ATR
+        high : instrument.high
+        low : instrument.low
+        close :instrument.close
+        startIdx : instrument.close.length-context.timeInterval
+        endIdx : instrument.close.length-1
+        optInTimePeriod : context.timeInterval
+    valueATR = valueATR[valueATR.length-1]
+    
+    valueATR_Prozent = 100*valueATR/instrument.price
+    #debug "valueATR_Prozent = #{valueATR_Prozent}%"
+    
+    plot
+        valueSMA:valueSMA
+        
+    
+    if ((valueATR_Prozent>context.Prozent)&&(valueSMA > valueSMAPre)&&(assetsAvailable==0))
+        trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout
+        context.buyPrice = instrument.price
+        debug "buyPrice = #{context.buyPrice}"
+    if(assetsAvailable > 0)
+        info context.buyPrice
+        debug instrument.close[instrument.close.length-1]
+        debug instrument.close[instrument.close.length-1]/context.buyPrice
+        if ((context.buyPrice > instrument.close[instrument.close.length-1])||(instrument.close[instrument.close.length-1]/context.buyPrice>1.015))
+            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout
+        
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
 
@@ -61,13 +90,10 @@ onStop: ->
     debug "Bot stopped at #{new Date(data.at)}"  
 
     assetsAvailable = @portfolios[instrument.market].positions[instrument.asset()].amount   
-    if (assetsAvailable > 0)
-        trading.sell instrument    #verkaufe alles um einen Endpreis zu erhalten
     currentBalance = @portfolios[instrument.market].positions[instrument.base()].amount 
-    botProfit = ((currentBalance / storage.startBalance)*100) 
-    buhProfit = ((instrument.price / storage.startPrice)*100) 
+
     debug "currency = #{currentBalance.toFixed(2)}"
     debug "assets = #{@portfolios[instrument.market].positions[instrument.asset()].amount}"
-    info "Bot Profit = #{botProfit.toFixed(2)}%" 
-    info "Hodl Profit = #{buhProfit.toFixed(2)}%"
+
     debug ""
+
