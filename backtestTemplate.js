@@ -1,5 +1,5 @@
-# Kaufe bei ATR > 1.5% und SMA > 0
-# Verkaufe bei 1,5% erreicht oder Ausgangskurs erreicht
+# Kaufe bei SMA(5) > SMA(51)
+# Verkaufe bei 1,5% erreicht oder 90% des Ausgangskurses erreicht oder SMA(5) < SMA(51)
 
 
 trading = require "trading"  
@@ -18,16 +18,16 @@ class functions
 
 init: ->  
     #This runs once when the bot is started  
-    context.timeIntervalShort = 9
+    context.timeIntervalShort = 5
     context.timeIntervalLong = 51
     context.Prozent = 1.5
     setPlotOptions
         valueSMAShort:
-            color: 'green'
-            lineWidth: 2
-		valueSMALong:
-            color: 'blue'
-            lineWidth: 2
+            color: 'deeppink'
+            lineWidth: 1
+        valueSMALong:
+            color: 'greenk'
+            lineWidth: 1
     context.buyPrice = 0
 handle: ->  
     #This runs once every tick or bar on the graph  
@@ -52,7 +52,7 @@ handle: ->
         startIdx: instrument.close.length-context.timeIntervalShort
         endIdx: instrument.close.length-1
         inReal: instrument.close
-        optInTimePeriod: context.timeInterval
+        optInTimePeriod: context.timeIntervalShort
     valueSMAShort = valueSMAShort_[valueSMAShort_.length-1]
     valueSMAShortPre = valueSMAShort_[valueSMAShort_.length-2]
     #debug "valueSMAShort = #{valueSMAShort}"
@@ -62,19 +62,18 @@ handle: ->
         startIdx: instrument.close.length-context.timeIntervalLong
         endIdx: instrument.close.length-1
         inReal: instrument.close
-        optInTimePeriod: context.timeInterval
+        optInTimePeriod: context.timeIntervalLong
     valueSMALong = valueSMALong_[valueSMALong_.length-1]
     valueSMALongPre = valueSMALong_[valueSMALong_.length-2]
-    #debug "valueSMALong = #{valueSMALong}"
-    #debug "valueSMALongPre = #{valueSMALongPre}"
+    
     
     valueATR = talib.ATR
         high : instrument.high
         low : instrument.low
         close :instrument.close
-        startIdx : instrument.close.length-context.timeInterval
+        startIdx : instrument.close.length-context.timeIntervalShort
         endIdx : instrument.close.length-1
-        optInTimePeriod : context.timeInterval
+        optInTimePeriod : context.timeIntervalShort
     valueATR = valueATR[valueATR.length-1]
     
     valueATR_Prozent = 100*valueATR/instrument.price
@@ -84,17 +83,18 @@ handle: ->
         valueSMAShort:valueSMAShort
         valueSMALong:valueSMALong
         
-    
-    if ((valueATR_Prozent>context.Prozent)&&(valueSMA > valueSMAPre)&&(assetsAvailable==0))
+    #BUY    
+    debug "asseassetsAvailablets = #{assetsAvailable}"
+    if ((valueSMAShort > valueSMALong)&&(valueSMALong>valueSMALongPre)&&(assetsAvailable==0))
         trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout
         context.buyPrice = instrument.price
-        debug "buyPrice = #{context.buyPrice}"
-    if(assetsAvailable > 0)
+        #debug "buyPrice = #{context.buyPrice}"
+    #SELL
+    if((assetsAvailable > 0)&&((context.buyPrice*0.9>instrument.price)||(instrument.price/context.buyPrice>1.015)||(valueSMAShort<valueSMALong)))
         info context.buyPrice
-        debug instrument.close[instrument.close.length-1]
-        debug instrument.close[instrument.close.length-1]/context.buyPrice
-        if ((context.buyPrice > instrument.close[instrument.close.length-1])||(instrument.close[instrument.close.length-1]/context.buyPrice>1.015))
-            trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout
+        #debug instrument.close[instrument.close.length-1]
+        #debug instrument.close[instrument.close.length-1]/context.buyPrice
+        trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout
         
 onRestart: ->  
     debug "Bot restarted at #{new Date(data.at)}"  
