@@ -18,11 +18,15 @@ class functions
 
 init: ->  
     #This runs once when the bot is started  
-    context.timeInterval = 5
+    context.timeIntervalShort = 9
+    context.timeIntervalLong = 51
     context.Prozent = 1.5
     setPlotOptions
-        valueSMA:
-            color: 'deeppink'
+        valueSMAShort:
+            color: 'green'
+            lineWidth: 2
+		valueSMALong:
+            color: 'blue'
             lineWidth: 2
     context.buyPrice = 0
 handle: ->  
@@ -44,15 +48,25 @@ handle: ->
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
 
-    valueSMA_ = talib.SMA
-        startIdx: instrument.close.length-context.timeInterval
+    valueSMAShort_ = talib.SMA
+        startIdx: instrument.close.length-context.timeIntervalShort
         endIdx: instrument.close.length-1
         inReal: instrument.close
         optInTimePeriod: context.timeInterval
-    valueSMA = valueSMA_[valueSMA_.length-1]
-    valueSMAPre = valueSMA_[valueSMA_.length-2]
-    #debug "valueSMA = #{valueSMA}"
-    #debug "valueSMAPre = #{valueSMAPre}"
+    valueSMAShort = valueSMAShort_[valueSMAShort_.length-1]
+    valueSMAShortPre = valueSMAShort_[valueSMAShort_.length-2]
+    #debug "valueSMAShort = #{valueSMAShort}"
+    #debug "valueSMAShortPre = #{valueSMAShortPre}"
+
+    valueSMALong_ = talib.SMA
+        startIdx: instrument.close.length-context.timeIntervalLong
+        endIdx: instrument.close.length-1
+        inReal: instrument.close
+        optInTimePeriod: context.timeInterval
+    valueSMALong = valueSMALong_[valueSMALong_.length-1]
+    valueSMALongPre = valueSMALong_[valueSMALong_.length-2]
+    #debug "valueSMALong = #{valueSMALong}"
+    #debug "valueSMALongPre = #{valueSMALongPre}"
     
     valueATR = talib.ATR
         high : instrument.high
@@ -67,7 +81,8 @@ handle: ->
     #debug "valueATR_Prozent = #{valueATR_Prozent}%"
     
     plot
-        valueSMA:valueSMA
+        valueSMAShort:valueSMAShort
+        valueSMALong:valueSMALong
         
     
     if ((valueATR_Prozent>context.Prozent)&&(valueSMA > valueSMAPre)&&(assetsAvailable==0))
