@@ -15,11 +15,15 @@ _orderTimeout = 30
 MINIMUM_AMOUNT = 30
 #######Params
 _einsatz = 1  #maximaler Einsatz prozentual vom Gesamtvermögen
-_trailingStop = params.add "Trailing Stop in %", 5  #%  bei so einem Rückgang steige ich aus
-_trailingIn = params.add "Trailing In in %", 0
-_kursStop = params.add "Kurs Stop", 0
-_kursIn = params.add "Kurs In", 0
-outputCounter = 15
+#_trailingStop = params.add "Trailing Stop in %", 5  #%  bei so einem Rückgang steige ich aus
+#_trailingIn = params.add "Trailing In in %", 0
+#_kursStop = params.add "Kurs Stop (SL)", 0
+#_kursIn = params.add "Kurs In", 0
+outputCounter = 1
+_trailingStop = 2.5  #%  bei so einem Rückgang steige ich aus
+_trailingIn =  0
+_kursStop =  0
+_kursIn =  0
 #######
 init: ->  
     #This runs once when the bot is started  
@@ -46,7 +50,6 @@ handle: ->
     #---------------------------------------------------------------------------
 
     if ((assetsAvailable>0)&&(_trailingStop>0))
-        debug context.COUNTER
         if (context.COUNTER == 0)
             info "Ausstieg bei: #{storage.startKursCalc*(1-context.PERCENT)}"
             context.COUNTER = outputCounter
@@ -66,7 +69,7 @@ handle: ->
     if ((_trailingStop > 0)&&(assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<storage.startKursCalc*(1-context.PERCENT)))  
         trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
         storage.startKursCalc = instrument.price 
-    #Ausstieg bei festem Kurs (StopLoss)
+    #Ausstieg bei festem Kurs
     if ((_kursStop > 0)&&(assetsAvailable>0)&&(maximumSellAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]<_kursStop))  
         trading.sell instrument, 'market', maximumSellAmount, instrument.price, _orderTimeout 
         storage.startKursCalc = instrument.price 
