@@ -15,14 +15,15 @@ _orderTimeout = 30
 MINIMUM_AMOUNT = 30
 #######Params
 _einsatz = 1  #maximaler Einsatz prozentual vom Gesamtvermögen
-_trailingStop = params.add "Trailing Stop in %", 10  #%  bei so einem Rückgang steige ich aus
+_trailingStop = params.add "Trailing Stop in %", 5  #%  bei so einem Rückgang steige ich aus
 _trailingIn = params.add "Trailing In in %", 0
-_kursStop = params.add "Kurs Stop", 0.86
+_kursStop = params.add "Kurs Stop", 0
 _kursIn = params.add "Kurs In", 0
 #######
 init: ->  
     #This runs once when the bot is started  
     context.PERCENT = _trailingStop/100
+    context.COUNTER = 15
 handle: ->  
     #This runs once every tick or bar on the graph  
     storage.botStartedAt ?= data.at  
@@ -43,8 +44,10 @@ handle: ->
     #-----------------------------------Strategie-------------------------------
     #---------------------------------------------------------------------------
 
-    if (assetsAvailable>0)
-        info "Ausstieg bei: #{storage.startKursCalc*(1-context.PERCENT)}"
+    if ((assetsAvailable>0)&&(_trailingStop>0))
+        if (context.COUNTER == 0)
+            info "Ausstieg bei: #{storage.startKursCalc*(1-context.PERCENT)}"
+            context.COUNTER = context.COUNTER - 1
     #Einstieg bei einem festen Kurs
     if ((_kursIn>0)&&(assetsAvailable==0)&&(maximumBuyAmount >= MINIMUM_AMOUNT)&&(instrument.close[instrument.close.length-1]>_kursIn))  
         trading.buy instrument, 'market', maximumBuyAmount, instrument.price, _orderTimeout 
